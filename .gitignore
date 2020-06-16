@@ -366,3 +366,5 @@ FodyWeavers.xsd
 /Release MT DLL/FE.exp
 /Release MT DLL/FE.dll
 /Release MT DLL
+/FE/Release MT/FE.tlog
+/Release MT

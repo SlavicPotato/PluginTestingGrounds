@@ -191,8 +191,8 @@ static HRESULT STDMETHODCALLTYPE Present_Rebind_Hook(
 	OnPresent(SyncInterval, PresentFlags);
 
 	ID3D11DeviceContext* ctx = nullptr;
-	ID3D11RenderTargetView* v1;
-	ID3D11DepthStencilView* v2;
+	ID3D11RenderTargetView* v1 = nullptr;
+	ID3D11DepthStencilView* v2 = nullptr;
 
 	ID3D11Device* dev;
 	if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&dev))) {
@@ -204,8 +204,12 @@ static HRESULT STDMETHODCALLTYPE Present_Rebind_Hook(
 
 	if (ctx != nullptr) {
 		ctx->OMSetRenderTargets(1, &v1, v2);
-		v1->Release();
-		v2->Release();
+		if (v1 != nullptr) {
+			v1->Release();
+		}
+		if (v2 != nullptr) {
+			v2->Release();
+		}
 		ctx->Release();
 	}
 
@@ -231,8 +235,8 @@ static HRESULT STDMETHODCALLTYPE Present1_Rebind_Hook(
 	OnPresent(SyncInterval, PresentFlags);
 
 	ID3D11DeviceContext* ctx = nullptr;
-	ID3D11RenderTargetView* v1;
-	ID3D11DepthStencilView* v2;
+	ID3D11RenderTargetView* v1 = nullptr;
+	ID3D11DepthStencilView* v2 = nullptr;
 
 	ID3D11Device* dev;
 	if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&dev))) {
@@ -244,9 +248,17 @@ static HRESULT STDMETHODCALLTYPE Present1_Rebind_Hook(
 
 	if (ctx != nullptr) {
 		ctx->OMSetRenderTargets(1, &v1, v2);
-		v1->Release();
-		v2->Release();
+		if (v1 != nullptr) {
+			v1->Release();
+		}
+		if (v2 != nullptr) {
+			v2->Release();
+		}
 		ctx->Release();
+	}
+
+	if (r != S_OK) {
+		MESSAGE("?? :lX", r);
 	}
 
 	return r;

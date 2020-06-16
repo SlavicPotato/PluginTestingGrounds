@@ -44,13 +44,16 @@ LoadLibraryA_Hook(
     _In_ LPCSTR lpLibFileName
 )
 {
-    //MESSAGE(_T("%s"), StrToNative(lpLibFileName).c_str());
+    try {
+        auto fileName(GetPathFileNameA(lpLibFileName));
 
-    auto fileName(GetPathFileNameA(lpLibFileName));
-
-    if (!FilterLoadLibraryW(ToWString(fileName))) {
-        SetLastError(ERROR_MOD_NOT_FOUND);
-        return NULL;
+        if (!FilterLoadLibraryW(ToWString(fileName))) {
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return NULL;
+        }
+    }
+    catch (exception& e) {
+        MESSAGE("Exception while filtering library: ", StrToNative(e.what()).c_str());
     }
 
     HMODULE r = LoadLibraryA_O(lpLibFileName);
@@ -64,11 +67,16 @@ LoadLibraryW_Hook(
     _In_ LPCWSTR lpLibFileName
 )
 {
-    auto fileName(GetPathFileNameW(lpLibFileName));
+    try {
+        auto fileName(GetPathFileNameW(lpLibFileName));
 
-    if (!FilterLoadLibraryW(fileName)) {
-        SetLastError(ERROR_MOD_NOT_FOUND);
-        return NULL;
+        if (!FilterLoadLibraryW(fileName)) {
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return NULL;
+        }
+    }
+    catch (exception& e) {
+        MESSAGE("Exception while filtering library: ", StrToNative(e.what()).c_str());
     }
 
     HMODULE r = LoadLibraryW_O(lpLibFileName);
@@ -85,11 +93,16 @@ LoadLibraryExA_Hook(
     _In_ DWORD dwFlags
 )
 {
-    auto fileName(GetPathFileNameA(lpLibFileName));
+    try {
+        auto fileName(GetPathFileNameA(lpLibFileName));
 
-    if (!FilterLoadLibraryW(ToWString(fileName))) {
-        SetLastError(ERROR_MOD_NOT_FOUND);
-        return NULL;
+        if (!FilterLoadLibraryW(ToWString(fileName))) {
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return NULL;
+        }
+    }
+    catch (exception& e) {
+        MESSAGE("Exception while filtering library: ", StrToNative(e.what()).c_str());
     }
 
     HMODULE r = LoadLibraryExA_O(lpLibFileName, hFile, dwFlags);
@@ -105,11 +118,16 @@ LoadLibraryExW_Hook(
     _In_ DWORD dwFlags
 )
 {
-    auto fileName(GetPathFileNameW(lpLibFileName));
+    try {
+        auto fileName(GetPathFileNameW(lpLibFileName));
 
-    if (!FilterLoadLibraryW(fileName)) {
-        SetLastError(ERROR_MOD_NOT_FOUND);
-        return NULL;
+        if (!FilterLoadLibraryW(fileName)) {
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return NULL;
+        }
+    }
+    catch (exception& e) {
+        MESSAGE("Exception while filtering library: ", StrToNative(e.what()).c_str());
     }
 
     HMODULE r = LoadLibraryExW_O(lpLibFileName, hFile, dwFlags);
@@ -181,7 +199,7 @@ extern "C"
             swapEffectStr = _T("default");
         }
 
-        MESSAGE(_T("SwapEffect: %s, Format: %s, BufferCount: %u, Tearing: %d"),
+        MESSAGE(_T("DXGI: SwapEffect: %s, Format: %s, BufferCount: %u, Tearing: %d"),
             swapEffectStr.c_str(), formatStr.c_str(),
             DXGI::BufferCount, DXGI::EnableTearing);
 
@@ -195,6 +213,14 @@ extern "C"
         D3D9::PresentIntervalImmediate = conf.Get("D3D9", "PresentIntervalImmediate", false);
         D3D9::BufferCount = clamp<int32_t>(conf.Get<int32_t>("D3D9", "BufferCount", -1), -1, D3DPRESENT_BACK_BUFFERS_MAX_EX);
         D3D9::MaxFrameLatency = clamp<int32_t>(conf.Get<int32_t>("D3D9", "MaxFrameLatency", -1), -1, 20);
+        D3D9::CreateTextureUsageDynamic = conf.Get("D3D9", "CreateTextureUsageDynamic", false);
+        D3D9::CreateTextureClearUsageFlags = conf.Get<UINT>("D3D9", "CreateTextureClearUsageFlags", 0x0U);
+        D3D9::CreateIndexBufferUsageDynamic = conf.Get("D3D9", "CreateIndexBufferUsageDynamic", false);
+        D3D9::CreateVertexBufferUsageDynamic = conf.Get("D3D9", "CreateVertexBufferUsageDynamic", false);
+        D3D9::CreateCubeTextureUsageDynamic = conf.Get("D3D9", "CreateCubeTextureUsageDynamic", false);
+        D3D9::CreateVolumeTextureUsageDynamic = conf.Get("D3D9", "CreateVolumeTextureUsageDynamic", false);
+        D3D9::ForceAdapter = conf.Get<int32_t>("D3D9", "ForceAdapter", -1);
+        D3D9::DisplayMode = clamp<int32_t>(conf.Get<int32_t>("D3D9", "DisplayMode", -1), -1, 1);
 
         D3D9::HasFormat = conf.Exists("D3D9", "Format");
         if (D3D9::HasFormat) {
@@ -202,7 +228,7 @@ extern "C"
                 D3D9::FormatAuto = true;
             }
             else {
-                D3D9::Format = conf.Get("D3D9", "Format", D3DFMT_X8R8G8B8);
+                D3D9::D3DFormat = conf.Get("D3D9", "Format", D3DFMT_X8R8G8B8);
             }
         }
 
@@ -214,6 +240,8 @@ extern "C"
         Inet::blockListen = conf.Get("Net", "BlockListen", false);
         Inet::blockInternetOpen = conf.Get("Net", "BlockInternetOpen", false);
         Inet::blockDNSResolve = conf.Get("Net", "BlockDNSResolve", false);
+
+        Window::BorderlessUpscaling = conf.Get("Window", "BorderlessUpscaling", false);
 
         auto hookIf = h->GetHookInterface();
 

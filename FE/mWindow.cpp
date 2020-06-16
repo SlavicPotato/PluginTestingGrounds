@@ -1,21 +1,24 @@
 #include "pch.h"
 
+#include "hpfe.cpp"
+
 using namespace Log;
 
 namespace Window
 {
-	
+	bool BorderlessUpscaling = false;
 }
 
 using namespace Window;
 
 static GetWindowRect_T GetWindowRect_O;
 static GetClientRect_T GetClientRect_O;
-static SetWindowPos_T SetWindowPos_O = nullptr;
+static SetWindowPos_T SetWindowPos_O;
+static CreateWindowExA_T CreateWindowExA_O;
 
 static HWND gameWindow = nullptr;
 
-static bool GetWPos(HWND hWnd, LPRECT lpRect)
+static bool WINAPI GetWPos(HWND hWnd, LPRECT lpRect)
 {
 	HMONITOR hMonitor = MonitorFromWindow(
 		hWnd, MONITOR_DEFAULTTOPRIMARY);
@@ -35,7 +38,7 @@ static bool GetWPos(HWND hWnd, LPRECT lpRect)
 	return true;
 }
 
-static BOOL GetWindowRect_Hook(
+static BOOL WINAPI GetWindowRect_Hook(
 	HWND   hWnd,
 	LPRECT lpRect
 )
@@ -49,7 +52,7 @@ static BOOL GetWindowRect_Hook(
 	return GetWindowRect_O(hWnd, lpRect);
 }
 
-static BOOL GetClientRect_Hook(
+static BOOL WINAPI GetClientRect_Hook(
 	HWND   hWnd,
 	LPRECT lpRect
 )
@@ -87,6 +90,23 @@ SetWindowPos_Hook(
 	return SetWindowPos_O(hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 }
 
+static HWND WINAPI CreateWindowExA_Hook(
+	_In_ DWORD dwExStyle,
+	_In_opt_ LPCSTR lpClassName,
+	_In_opt_ LPCSTR lpWindowName,
+	_In_ DWORD dwStyle,
+	_In_ int X,
+	_In_ int Y,
+	_In_ int nWidth,
+	_In_ int nHeight,
+	_In_opt_ HWND hWndParent,
+	_In_opt_ HMENU hMenu,
+	_In_opt_ HINSTANCE hInstance,
+	_In_opt_ LPVOID lpParam)
+{
+
+}
+
 
 static volatile LONG isWindowHooked = 0;
 
@@ -109,25 +129,32 @@ namespace Window
 {
 	void OnSwapChainCreate(HWND hWnd)
 	{
-		/*if (gameWindow == nullptr && hWnd != nullptr) {
-			gameWindow = hWnd;
-			MESSAGE(_T("Got game window: %p"),  hWnd);
-			if (SetWindowPos_O != nullptr) {
-				int X, Y, cx, cy;
-				RECT pRect;
-				if (GetWPos(hWnd, &pRect)) {
-					X = pRect.left;
-					Y = pRect.top;
-					cx = pRect.right;
-					cy = pRect.bottom;
-				}
-				SetWindowPos_O(hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOSENDCHANGING | SWP_ASYNCWINDOWPOS);
+		if (!BorderlessUpscaling) {
+			return;
+		}
+
+		if (gameWindow != nullptr || hWnd == nullptr) {
+			return;
+		}
+
+		gameWindow = hWnd;
+		MESSAGE(_T("Got game window: %p"), hWnd);
+
+		if (SetWindowPos_O != nullptr) {
+			int X, Y, cx, cy;
+			RECT pRect;
+			if (GetWPos(hWnd, &pRect)) {
+				X = pRect.left;
+				Y = pRect.top;
+				cx = pRect.right;
+				cy = pRect.bottom;
 			}
-		}*/
+			SetWindowPos_O(hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOSENDCHANGING | SWP_ASYNCWINDOWPOS);
+		}
 	}
 
 	void InstallHooksIfLoaded()
 	{
-		//InstallHookIfLoaded(isWindowHooked, _T("user32.dll"), HookWindow);
+		InstallHookIfLoaded(isWindowHooked, _T("user32.dll"), HookWindow);
 	}
 }
