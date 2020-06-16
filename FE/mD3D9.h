@@ -1,6 +1,5 @@
 #pragma once
 
-#include <initguid.h>
 #include <d3d9.h>
 
 typedef IDirect3D9* (WINAPI* Direct3DCreate9_T)(UINT SDKVersion);
