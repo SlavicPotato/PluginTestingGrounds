@@ -40,15 +40,16 @@ void DumpD3DPresentParams(
     D3DPRESENT_PARAMETERS* pPresentationParameters,
     D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
-    MESSAGE(_T("SwapEffect: %d, BufferCount: %u, Flags: %lX, PresentationInterval: 0x%X, Windowed: %d"),
+    MESSAGE(_T("SwapEffect: %d, BufferCount: %u, Flags: %lX, PresentationInterval: 0x%X, Windowed: %d, Fs_RR: %u"),
         pPresentationParameters->SwapEffect,
         pPresentationParameters->BackBufferCount,
         pPresentationParameters->Flags,
         pPresentationParameters->PresentationInterval,
-        pPresentationParameters->Windowed);
+        pPresentationParameters->Windowed,
+        pPresentationParameters->FullScreen_RefreshRateInHz);
 
     if (pFullscreenDisplayMode != nullptr) {
-        MESSAGE(_T("%ux%u, Format: %d, RefreshRate: %u"),
+        MESSAGE(_T("D3DDISPLAYMODEEX: %ux%u, Format: %d, RefreshRate: %u"),
             pFullscreenDisplayMode->Width,
             pFullscreenDisplayMode->Height,
             pFullscreenDisplayMode->Format,
@@ -104,6 +105,7 @@ static void PopulateD3DPresentParams(
 
         pPresentationParameters->MultiSampleQuality = 0;
         pPresentationParameters->MultiSampleType = D3DMULTISAMPLE_NONE;
+        pPresentationParameters->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 
         if (PresentIntervalImmediate) {
             pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
@@ -214,17 +216,17 @@ HRESULT w_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
         return S_OK;
     }
 
-    return ProxyInterface->QueryInterface(riid, ppvObj);
+    return Proxy->QueryInterface(riid, ppvObj);
 }
 
 ULONG w_IDirect3D9Ex::AddRef()
 {
-    return ProxyInterface->AddRef();
+    return Proxy->AddRef();
 }
 
 ULONG w_IDirect3D9Ex::Release()
 {
-    ULONG count = ProxyInterface->Release();
+    ULONG count = Proxy->Release();
 
     if (count == 0)
     {
@@ -240,7 +242,7 @@ HRESULT w_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->EnumAdapterModes(Adapter, Format, Mode, pMode);
+    HRESULT hr = Proxy->EnumAdapterModes(Adapter, Format, Mode, pMode);
 
     if (!SUCCEEDED(hr))
     {
@@ -255,7 +257,7 @@ HRESULT w_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
 
 UINT w_IDirect3D9Ex::GetAdapterCount()
 {
-    return ProxyInterface->GetAdapterCount();
+    return Proxy->GetAdapterCount();
 }
 
 HRESULT w_IDirect3D9Ex::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE* pMode)
@@ -264,7 +266,7 @@ HRESULT w_IDirect3D9Ex::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE* pMod
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->GetAdapterDisplayMode(Adapter, pMode);
+    HRESULT hr = Proxy->GetAdapterDisplayMode(Adapter, pMode);
 
     if (!SUCCEEDED(hr))
     {
@@ -283,11 +285,11 @@ HRESULT w_IDirect3D9Ex::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPT
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->GetAdapterIdentifier(Adapter, Flags, pIdentifier);
+    HRESULT hr = Proxy->GetAdapterIdentifier(Adapter, Flags, pIdentifier);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -299,7 +301,7 @@ UINT w_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->GetAdapterModeCount(Adapter, Format);
+    HRESULT hr = Proxy->GetAdapterModeCount(Adapter, Format);
 
     if (!SUCCEEDED(hr))
     {
@@ -318,7 +320,7 @@ HMONITOR w_IDirect3D9Ex::GetAdapterMonitor(UINT Adapter)
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    return ProxyInterface->GetAdapterMonitor(Adapter);
+    return Proxy->GetAdapterMonitor(Adapter);
 }
 
 HRESULT w_IDirect3D9Ex::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps)
@@ -327,11 +329,11 @@ HRESULT w_IDirect3D9Ex::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCA
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->GetDeviceCaps(Adapter, DeviceType, pCaps);
+    HRESULT hr = Proxy->GetDeviceCaps(Adapter, DeviceType, pCaps);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -339,11 +341,11 @@ HRESULT w_IDirect3D9Ex::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCA
 
 HRESULT w_IDirect3D9Ex::RegisterSoftwareDevice(void* pInitializeFunction)
 {
-    HRESULT hr = ProxyInterface->RegisterSoftwareDevice(pInitializeFunction);
+    HRESULT hr = Proxy->RegisterSoftwareDevice(pInitializeFunction);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -355,11 +357,11 @@ HRESULT w_IDirect3D9Ex::CheckDepthStencilMatch(UINT Adapter, D3DDEVTYPE DeviceTy
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->CheckDepthStencilMatch(Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
+    HRESULT hr = Proxy->CheckDepthStencilMatch(Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -370,12 +372,26 @@ HRESULT w_IDirect3D9Ex::CheckDeviceFormat(UINT Adapter, D3DDEVTYPE DeviceType, D
     if (ForceAdapter > -1) {
         Adapter = static_cast<UINT>(ForceAdapter);
     }
+    
+    switch (RType)
+    {
+    case D3DRTYPE_TEXTURE:
+       
+        break;
+    case D3DRTYPE_VOLUMETEXTURE:
+        
+        break;
+    case D3DRTYPE_CUBETEXTURE:
+        
+        break;
+    
+    }
 
-    HRESULT hr = ProxyInterface->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
+    HRESULT hr = Proxy->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED: %u %d %d %lX %d %d"), Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
+        //MESSAGE(_T("FAILED: %u %d %d %lX %d %d"), Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
     }
 
     return hr;
@@ -391,11 +407,11 @@ HRESULT w_IDirect3D9Ex::CheckDeviceMultiSampleType(THIS_ UINT Adapter, D3DDEVTYP
         Windowed = static_cast<BOOL>(Windowed);
     }
 
-    HRESULT hr = ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, pQualityLevels);
+    HRESULT hr = Proxy->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, pQualityLevels);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        //MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -411,11 +427,13 @@ HRESULT w_IDirect3D9Ex::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DF
         Windowed = static_cast<BOOL>(Windowed);
     }
 
-    HRESULT hr = ProxyInterface->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
+    BackBufferFormat = GetD3DFormat(BackBufferFormat);
+    
+    HRESULT hr = Proxy->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED: %u %d %d %d %d"), Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
+        MESSAGE(_T("FAILED: %lX %u %d %d %d %d"), hr, Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
     }
 
     return hr;
@@ -427,11 +445,11 @@ HRESULT w_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTY
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
+    HRESULT hr = Proxy->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -461,11 +479,11 @@ UINT w_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->GetAdapterModeCountEx(Adapter, pFilter);
+    HRESULT hr = Proxy->GetAdapterModeCountEx(Adapter, pFilter);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -477,11 +495,11 @@ HRESULT w_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->EnumAdapterModesEx(Adapter, pFilter, Mode, pMode);
+    HRESULT hr = Proxy->EnumAdapterModesEx(Adapter, pFilter, Mode, pMode);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
     else {
         //MESSAGE(_T("OK: %d %ux%u %u"), pMode->Format, pMode->Width, pMode->Height, pMode->RefreshRate);
@@ -496,7 +514,7 @@ HRESULT w_IDirect3D9Ex::GetAdapterDisplayModeEx(THIS_ UINT Adapter, D3DDISPLAYMO
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->GetAdapterDisplayModeEx(Adapter, pMode, pRotation);
+    HRESULT hr = Proxy->GetAdapterDisplayModeEx(Adapter, pMode, pRotation);
 
     if (!SUCCEEDED(hr))
     {
@@ -533,12 +551,12 @@ HRESULT w_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
         pp.BackBufferHeight,
         pp.hDeviceWindow);
 
-    MESSAGE("Adapter:%u DeviceType: %d BehaviorFlags: %lX hFocusWindow:%p",
+    MESSAGE("Adapter:%u DeviceType: %d BehaviorFlags: 0x%lX hFocusWindow:%p",
         Adapter, DeviceType, BehaviorFlags, hFocusWindow, hFocusWindow);
 
     IDirect3DDevice9Ex* tmp;
 
-    auto hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &pp, pFullscreenDisplayMode, &tmp);
+    auto hr = Proxy->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &pp, pFullscreenDisplayMode, &tmp);
     if (SUCCEEDED(hr)) {
         MESSAGE(_T("Succeeded"));
 
@@ -568,11 +586,11 @@ HRESULT w_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID* pLUID)
         Adapter = static_cast<UINT>(ForceAdapter);
     }
 
-    HRESULT hr = ProxyInterface->GetAdapterLUID(Adapter, pLUID);
+    HRESULT hr = Proxy->GetAdapterLUID(Adapter, pLUID);
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -639,7 +657,7 @@ HRESULT w_IDirect3DDevice9Ex::EndScene()
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -656,7 +674,7 @@ HRESULT w_IDirect3DDevice9Ex::SetCursorProperties(UINT XHotSpot, UINT YHotSpot, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -668,7 +686,7 @@ BOOL w_IDirect3DDevice9Ex::ShowCursor(BOOL bShow)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -680,7 +698,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS* p
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -700,7 +718,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -717,7 +735,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -754,7 +772,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -816,7 +834,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -828,7 +846,7 @@ HRESULT w_IDirect3DDevice9Ex::BeginStateBlock()
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -840,7 +858,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -852,7 +870,7 @@ HRESULT w_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -864,7 +882,7 @@ HRESULT w_IDirect3DDevice9Ex::GetClipStatus(D3DCLIPSTATUS9* pClipStatus)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -876,7 +894,7 @@ HRESULT w_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -888,7 +906,7 @@ HRESULT w_IDirect3DDevice9Ex::GetRenderState(D3DRENDERSTATETYPE State, DWORD* pV
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -900,7 +918,7 @@ HRESULT w_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -912,7 +930,7 @@ HRESULT w_IDirect3DDevice9Ex::GetTransform(D3DTRANSFORMSTATETYPE State, D3DMATRI
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -924,7 +942,7 @@ HRESULT w_IDirect3DDevice9Ex::SetClipStatus(CONST D3DCLIPSTATUS9* pClipStatus)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -936,7 +954,7 @@ HRESULT w_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -948,7 +966,7 @@ HRESULT w_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -960,7 +978,7 @@ HRESULT w_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -982,7 +1000,7 @@ HRESULT w_IDirect3DDevice9Ex::DeletePatch(UINT Handle)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -994,7 +1012,7 @@ HRESULT w_IDirect3DDevice9Ex::DrawRectPatch(UINT Handle, CONST float* pNumSegs, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1006,7 +1024,7 @@ HRESULT w_IDirect3DDevice9Ex::DrawTriPatch(UINT Handle, CONST float* pNumSegs, C
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1018,7 +1036,7 @@ HRESULT w_IDirect3DDevice9Ex::GetIndices(THIS_ IDirect3DIndexBuffer9** ppIndexDa
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1030,7 +1048,7 @@ HRESULT w_IDirect3DDevice9Ex::SetIndices(THIS_ IDirect3DIndexBuffer9* pIndexData
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1047,7 +1065,7 @@ HRESULT w_IDirect3DDevice9Ex::GetCreationParameters(D3DDEVICE_CREATION_PARAMETER
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1059,7 +1077,7 @@ HRESULT w_IDirect3DDevice9Ex::GetDeviceCaps(D3DCAPS9* pCaps)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1084,7 +1102,7 @@ HRESULT w_IDirect3DDevice9Ex::GetRasterStatus(THIS_ UINT iSwapChain, D3DRASTER_S
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1096,7 +1114,7 @@ HRESULT w_IDirect3DDevice9Ex::GetLight(DWORD Index, D3DLIGHT9* pLight)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1108,7 +1126,7 @@ HRESULT w_IDirect3DDevice9Ex::GetLightEnable(DWORD Index, BOOL* pEnable)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1120,7 +1138,7 @@ HRESULT w_IDirect3DDevice9Ex::GetMaterial(D3DMATERIAL9* pMaterial)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1132,7 +1150,7 @@ HRESULT w_IDirect3DDevice9Ex::LightEnable(DWORD LightIndex, BOOL bEnable)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1144,7 +1162,7 @@ HRESULT w_IDirect3DDevice9Ex::SetLight(DWORD Index, CONST D3DLIGHT9* pLight)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1156,7 +1174,7 @@ HRESULT w_IDirect3DDevice9Ex::SetMaterial(CONST D3DMATERIAL9* pMaterial)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1168,7 +1186,7 @@ HRESULT w_IDirect3DDevice9Ex::MultiplyTransform(D3DTRANSFORMSTATETYPE State, CON
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1180,7 +1198,7 @@ HRESULT w_IDirect3DDevice9Ex::ProcessVertices(THIS_ UINT SrcStartIndex, UINT Des
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1192,7 +1210,7 @@ HRESULT w_IDirect3DDevice9Ex::TestCooperativeLevel()
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1204,7 +1222,7 @@ HRESULT w_IDirect3DDevice9Ex::GetCurrentTexturePalette(UINT* pPaletteNumber)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1216,7 +1234,7 @@ HRESULT w_IDirect3DDevice9Ex::GetPaletteEntries(UINT PaletteNumber, PALETTEENTRY
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1228,7 +1246,7 @@ HRESULT w_IDirect3DDevice9Ex::SetCurrentTexturePalette(UINT PaletteNumber)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1240,7 +1258,7 @@ HRESULT w_IDirect3DDevice9Ex::SetPaletteEntries(UINT PaletteNumber, CONST PALETT
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1252,7 +1270,7 @@ HRESULT w_IDirect3DDevice9Ex::CreatePixelShader(THIS_ CONST DWORD* pFunction, ID
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1264,7 +1282,7 @@ HRESULT w_IDirect3DDevice9Ex::GetPixelShader(THIS_ IDirect3DPixelShader9** ppSha
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1277,7 +1295,6 @@ HRESULT w_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 
 HRESULT w_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion)
 {
-    //return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
     return Proxy->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0);
 }
 
@@ -1312,7 +1329,7 @@ HRESULT w_IDirect3DDevice9Ex::GetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1324,7 +1341,7 @@ HRESULT w_IDirect3DDevice9Ex::SetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1336,7 +1353,7 @@ HRESULT w_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1348,7 +1365,7 @@ HRESULT w_IDirect3DDevice9Ex::GetDepthStencilSurface(IDirect3DSurface9** ppZSten
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1360,7 +1377,7 @@ HRESULT w_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9** pp
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1372,7 +1389,7 @@ HRESULT w_IDirect3DDevice9Ex::GetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1384,7 +1401,7 @@ HRESULT w_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTe
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1401,7 +1418,7 @@ HRESULT w_IDirect3DDevice9Ex::UpdateTexture(IDirect3DBaseTexture9* pSourceTextur
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1433,7 +1450,7 @@ HRESULT w_IDirect3DDevice9Ex::GetViewport(D3DVIEWPORT9* pViewport)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1445,7 +1462,7 @@ HRESULT w_IDirect3DDevice9Ex::SetViewport(CONST D3DVIEWPORT9* pViewport)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1457,7 +1474,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateVertexShader(THIS_ CONST DWORD* pFunction, I
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1469,7 +1486,7 @@ HRESULT w_IDirect3DDevice9Ex::GetVertexShader(THIS_ IDirect3DVertexShader9** ppS
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1481,7 +1498,7 @@ HRESULT w_IDirect3DDevice9Ex::SetVertexShader(THIS_ IDirect3DVertexShader9* pSha
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1493,7 +1510,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuer
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1505,7 +1522,7 @@ HRESULT w_IDirect3DDevice9Ex::SetPixelShaderConstantB(THIS_ UINT StartRegister, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1517,7 +1534,7 @@ HRESULT w_IDirect3DDevice9Ex::GetPixelShaderConstantB(THIS_ UINT StartRegister, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1529,7 +1546,7 @@ HRESULT w_IDirect3DDevice9Ex::SetPixelShaderConstantI(THIS_ UINT StartRegister, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1541,7 +1558,7 @@ HRESULT w_IDirect3DDevice9Ex::GetPixelShaderConstantI(THIS_ UINT StartRegister, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1553,7 +1570,7 @@ HRESULT w_IDirect3DDevice9Ex::SetPixelShaderConstantF(THIS_ UINT StartRegister, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1565,7 +1582,7 @@ HRESULT w_IDirect3DDevice9Ex::GetPixelShaderConstantF(THIS_ UINT StartRegister, 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1577,7 +1594,7 @@ HRESULT w_IDirect3DDevice9Ex::SetStreamSourceFreq(THIS_ UINT StreamNumber, UINT 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1589,7 +1606,7 @@ HRESULT w_IDirect3DDevice9Ex::GetStreamSourceFreq(THIS_ UINT StreamNumber, UINT*
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1601,7 +1618,7 @@ HRESULT w_IDirect3DDevice9Ex::SetVertexShaderConstantB(THIS_ UINT StartRegister,
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1613,7 +1630,7 @@ HRESULT w_IDirect3DDevice9Ex::GetVertexShaderConstantB(THIS_ UINT StartRegister,
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1625,7 +1642,7 @@ HRESULT w_IDirect3DDevice9Ex::SetVertexShaderConstantF(THIS_ UINT StartRegister,
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1637,7 +1654,7 @@ HRESULT w_IDirect3DDevice9Ex::GetVertexShaderConstantF(THIS_ UINT StartRegister,
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1649,7 +1666,7 @@ HRESULT w_IDirect3DDevice9Ex::SetVertexShaderConstantI(THIS_ UINT StartRegister,
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1661,7 +1678,7 @@ HRESULT w_IDirect3DDevice9Ex::GetVertexShaderConstantI(THIS_ UINT StartRegister,
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1673,7 +1690,7 @@ HRESULT w_IDirect3DDevice9Ex::SetFVF(THIS_ DWORD FVF)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1685,7 +1702,7 @@ HRESULT w_IDirect3DDevice9Ex::GetFVF(THIS_ DWORD* pFVF)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1697,7 +1714,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEME
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1709,7 +1726,7 @@ HRESULT w_IDirect3DDevice9Ex::SetVertexDeclaration(THIS_ IDirect3DVertexDeclarat
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1721,7 +1738,7 @@ HRESULT w_IDirect3DDevice9Ex::GetVertexDeclaration(THIS_ IDirect3DVertexDeclarat
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1733,7 +1750,7 @@ HRESULT w_IDirect3DDevice9Ex::SetNPatchMode(THIS_ float nSegments)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1760,7 +1777,7 @@ HRESULT w_IDirect3DDevice9Ex::EvictManagedResources(THIS)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1772,7 +1789,7 @@ HRESULT w_IDirect3DDevice9Ex::SetSoftwareVertexProcessing(THIS_ BOOL bSoftware)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1784,7 +1801,7 @@ HRESULT w_IDirect3DDevice9Ex::SetScissorRect(THIS_ CONST RECT* pRect)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1796,7 +1813,7 @@ HRESULT w_IDirect3DDevice9Ex::GetScissorRect(THIS_ RECT* pRect)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1808,7 +1825,7 @@ HRESULT w_IDirect3DDevice9Ex::GetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1820,7 +1837,7 @@ HRESULT w_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1832,7 +1849,7 @@ HRESULT w_IDirect3DDevice9Ex::SetDepthStencilSurface(THIS_ IDirect3DSurface9* pN
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1844,7 +1861,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1856,7 +1873,7 @@ HRESULT w_IDirect3DDevice9Ex::ColorFill(THIS_ IDirect3DSurface9* pSurface, CONST
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1868,7 +1885,7 @@ HRESULT w_IDirect3DDevice9Ex::StretchRect(THIS_ IDirect3DSurface9* pSourceSurfac
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1880,7 +1897,7 @@ HRESULT w_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1892,7 +1909,7 @@ HRESULT w_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1904,7 +1921,7 @@ HRESULT w_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurf
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1916,7 +1933,7 @@ HRESULT w_IDirect3DDevice9Ex::SetDialogBoxMode(THIS_ BOOL bEnableDialogs)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1928,7 +1945,7 @@ HRESULT w_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1940,7 +1957,7 @@ HRESULT w_IDirect3DDevice9Ex::SetConvolutionMonoKernel(THIS_ UINT width, UINT he
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1952,7 +1969,7 @@ HRESULT w_IDirect3DDevice9Ex::ComposeRects(THIS_ IDirect3DSurface9* pSrc, IDirec
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -1984,7 +2001,7 @@ HRESULT w_IDirect3DDevice9Ex::CheckResourceResidency(THIS_ IDirect3DResource9** 
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -2012,7 +2029,7 @@ HRESULT w_IDirect3DDevice9Ex::GetMaximumFrameLatency(THIS_ UINT* pMaxLatency)
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -2034,7 +2051,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -2046,7 +2063,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -2063,7 +2080,7 @@ HRESULT w_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;
@@ -2096,7 +2113,7 @@ HRESULT w_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 
     if (!SUCCEEDED(hr))
     {
-        MESSAGE(_T("FAILED"));
+        MESSAGE(_T("FAILED: %lX"), hr);
     }
 
     return hr;

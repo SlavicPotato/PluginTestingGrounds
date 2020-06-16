@@ -7,6 +7,7 @@ using namespace Log;
 namespace Window
 {
 	bool BorderlessUpscaling = false;
+	bool ForceBorderless = false;
 }
 
 using namespace Window;
@@ -43,7 +44,8 @@ static BOOL WINAPI GetWindowRect_Hook(
 	LPRECT lpRect
 )
 {
-	if (gameWindow != nullptr && hWnd == gameWindow) {
+	if (gameWindow != nullptr && hWnd == gameWindow) 
+	{
 		if (GetWPos(hWnd, lpRect)) {
 			return TRUE;
 		}
@@ -57,7 +59,8 @@ static BOOL WINAPI GetClientRect_Hook(
 	LPRECT lpRect
 )
 {
-	if (gameWindow != nullptr && hWnd == gameWindow) {
+	if (gameWindow != nullptr && hWnd == gameWindow) 
+	{
 		if (GetWPos(hWnd, lpRect)) {
 			return TRUE;
 		}
@@ -104,7 +107,8 @@ static HWND WINAPI CreateWindowExA_Hook(
 	_In_opt_ HINSTANCE hInstance,
 	_In_opt_ LPVOID lpParam)
 {
-
+	
+	return CreateWindowExA_O(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 
@@ -118,38 +122,64 @@ static void HookWindow(HMODULE hModule)
 
 	auto hookIf = pHandle->GetHookInterface();
 
-	RegisterDetour(hookIf, hModule, GetWindowRect_O, GetWindowRect_Hook, "GetWindowRect");
-	RegisterDetour(hookIf, hModule, GetClientRect_O, GetClientRect_Hook, "GetClientRect");
-	RegisterDetour(hookIf, hModule, SetWindowPos_O, SetWindowPos_Hook, "SetWindowPos");
+	if (BorderlessUpscaling) {
+		RegisterDetour(hookIf, hModule, GetWindowRect_O, GetWindowRect_Hook, "GetWindowRect");
+		RegisterDetour(hookIf, hModule, GetClientRect_O, GetClientRect_Hook, "GetClientRect");
+		RegisterDetour(hookIf, hModule, SetWindowPos_O, SetWindowPos_Hook, "SetWindowPos");
+	}
+
+	if (ForceBorderless) {
+		RegisterDetour(hookIf, hModule, CreateWindowExA_O, CreateWindowExA_Hook, "CreateWindowExA");
+	}
 
 	IHookLogged(hookIf, &gLog).InstallHooks();
+}
+
+static void RepositionBorderlessWindow(HWND hWnd)
+{
+	int X, Y, cx, cy;
+	RECT pRect;
+	if (GetWPos(hWnd, &pRect)) {
+		X = pRect.left;
+		Y = pRect.top;
+		cx = pRect.right;
+		cy = pRect.bottom;
+	}
+	if (SetWindowPos_O != nullptr) {
+		SetWindowPos_O(hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOSENDCHANGING | SWP_ASYNCWINDOWPOS);
+	}
+	else {
+		SetWindowPos(hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOSENDCHANGING | SWP_ASYNCWINDOWPOS);
+	}
 }
 
 namespace Window
 {
 	void OnSwapChainCreate(HWND hWnd)
 	{
-		if (!BorderlessUpscaling) {
-			return;
-		}
-
 		if (gameWindow != nullptr || hWnd == nullptr) {
 			return;
 		}
 
-		gameWindow = hWnd;
 		MESSAGE(_T("Got game window: %p"), hWnd);
 
-		if (SetWindowPos_O != nullptr) {
-			int X, Y, cx, cy;
-			RECT pRect;
-			if (GetWPos(hWnd, &pRect)) {
-				X = pRect.left;
-				Y = pRect.top;
-				cx = pRect.right;
-				cy = pRect.bottom;
+		if (ForceBorderless) 
+		{
+			LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+			if (!(style & WS_POPUP)) 
+			{
+				MESSAGE(_T("%p: Borderless fullscreen requested but window doesn't have WS_POPUP style, attempting to fix.."), hWnd);
+
+				style &= ~WS_OVERLAPPEDWINDOW;
+				style |= WS_POPUP;
+				SetWindowLongPtrA(hWnd, GWL_STYLE, style);
+				RepositionBorderlessWindow(hWnd);
 			}
-			SetWindowPos_O(hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOSENDCHANGING | SWP_ASYNCWINDOWPOS);
+		}
+
+		if (BorderlessUpscaling) {
+			gameWindow = hWnd;
+			RepositionBorderlessWindow(hWnd);
 		}
 	}
 

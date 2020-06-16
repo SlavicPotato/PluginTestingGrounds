@@ -37,12 +37,12 @@ namespace D3D9
 class w_IDirect3D9Ex : public IDirect3D9Ex
 {
 private:
-    IDirect3D9Ex* ProxyInterface;
+    IDirect3D9Ex* Proxy;
     GUID WrapperID = IID_IUnknown;
 
 public:
     w_IDirect3D9Ex(IDirect3D9Ex* pDirect3D, GUID DeviceID) :
-        ProxyInterface(pDirect3D), WrapperID(DeviceID)
+        Proxy(pDirect3D), WrapperID(DeviceID)
     {
     }
 

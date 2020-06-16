@@ -242,6 +242,7 @@ extern "C"
         Inet::blockDNSResolve = conf.Get("Net", "BlockDNSResolve", false);
 
         Window::BorderlessUpscaling = conf.Get("Window", "BorderlessUpscaling", false);
+        Window::ForceBorderless = D3D9::DisplayMode == 1 || DXGI::DisplayMode == 0;
 
         auto hookIf = h->GetHookInterface();
 

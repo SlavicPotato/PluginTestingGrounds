@@ -37,6 +37,7 @@ typedef HWND (WINAPI *CreateWindowExA_T)(
 namespace Window
 {
 	extern bool BorderlessUpscaling;
+	extern bool ForceBorderless;
 
     extern void OnSwapChainCreate(HWND hWnd);
 	void InstallHooksIfLoaded();
