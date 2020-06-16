@@ -32,8 +32,25 @@ namespace D3D9
 
     void InstallHooksIfLoaded();
     void InstallProxyOverrides(IPlugin* h);
-}
 
+
+    extern UINT dwPresentFlags;
+
+    extern void PopulateD3DDisplayModeEx(
+        D3DPRESENT_PARAMETERS* pPresentationParameters,
+        D3DDISPLAYMODEEX* pFullscreenDisplayMode);
+    extern void PopulateD3DPresentParams(
+        D3DPRESENT_PARAMETERS* pPresentationParameters);
+    extern void D3DPresentParamsCopyOnReturn(
+        D3DPRESENT_PARAMETERS* pPresentationParametersL,
+        D3DPRESENT_PARAMETERS* pPresentationParametersR);
+    extern D3DFORMAT GetD3DFormat(D3DFORMAT _format);
+    extern void DumpD3DPresentParams(
+        D3DPRESENT_PARAMETERS* pPresentationParameters,
+        D3DDISPLAYMODEEX* pFullscreenDisplayMode);
+
+}
+/*
 class w_IDirect3D9Ex : public IDirect3D9Ex
 {
 private:
@@ -46,12 +63,10 @@ public:
     {
     }
 
-    /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
     STDMETHOD_(ULONG, AddRef)(THIS);
     STDMETHOD_(ULONG, Release)(THIS);
 
-    /*** IDirect3D9 methods ***/
     STDMETHOD(RegisterSoftwareDevice)(THIS_ void* pInitializeFunction);
     STDMETHOD_(UINT, GetAdapterCount)(THIS);
     STDMETHOD(GetAdapterIdentifier)(THIS_ UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9* pIdentifier);
@@ -77,22 +92,20 @@ class w_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
 {
 private:
     IDirect3DDevice9Ex* Proxy;
-    IDirect3D9Ex* m_pD3DEx;
+    w_IDirect3D9Ex* m_pD3DEx;
     GUID WrapperID = IID_IUnknown;
 
 public:
-    w_IDirect3DDevice9Ex(IDirect3DDevice9Ex* pDevice, IDirect3D9Ex* pD3D, GUID DeviceID) :
+    w_IDirect3DDevice9Ex(IDirect3DDevice9Ex* pDevice, w_IDirect3D9Ex* pD3D, GUID DeviceID) :
         Proxy(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
     {
     }
     IDirect3DDevice9Ex* GetProxyInterface() { return Proxy; }
 
-    /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
     STDMETHOD_(ULONG, AddRef)(THIS);
     STDMETHOD_(ULONG, Release)(THIS);
 
-    /*** IDirect3DDevice9 methods ***/
     STDMETHOD(TestCooperativeLevel)(THIS);
     STDMETHOD_(UINT, GetAvailableTextureMem)(THIS);
     STDMETHOD(EvictManagedResources)(THIS);
@@ -225,3 +238,4 @@ public:
     STDMETHOD(ResetEx)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
     STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 };
+*/

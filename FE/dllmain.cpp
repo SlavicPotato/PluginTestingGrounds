@@ -32,8 +32,12 @@ static bool FilterLoadLibraryW(const wstring& lfn)
 static void
 InstallHooksIfLoaded()
 {
-    D3D9::InstallHooksIfLoaded();
-    D3D11::InstallHooksIfLoaded();
+    if (pHandle->GetLoaderVersion() == Loader::Version::D3D9) {
+        D3D9::InstallHooksIfLoaded();
+    }
+    else if (pHandle->GetLoaderVersion() == Loader::Version::DXGI) {
+        D3D11::InstallHooksIfLoaded();
+    }
     Inet::InstallHooksIfLoaded();
     Window::InstallHooksIfLoaded();
 }

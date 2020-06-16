@@ -161,6 +161,7 @@ namespace Window
 		}
 
 		MESSAGE("Got game window: %p", hWnd);
+		gameWindow = hWnd;
 
 		if (ForceBorderless) 
 		{
@@ -177,7 +178,6 @@ namespace Window
 		}
 
 		if (BorderlessUpscaling) {
-			gameWindow = hWnd;
 			RepositionBorderlessWindow(hWnd);
 		}
 	}
