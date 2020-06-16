@@ -38,6 +38,7 @@ namespace Window
 {
 	extern bool BorderlessUpscaling;
 	extern bool ForceBorderless;
+	extern bool CursorFix;
 
     extern void OnSwapChainCreate(HWND hWnd);
 	void InstallHooksIfLoaded();
