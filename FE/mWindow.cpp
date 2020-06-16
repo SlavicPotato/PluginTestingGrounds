@@ -107,7 +107,6 @@ static HWND WINAPI CreateWindowExA_Hook(
 	_In_opt_ HINSTANCE hInstance,
 	_In_opt_ LPVOID lpParam)
 {
-	
 	return CreateWindowExA_O(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
@@ -161,14 +160,14 @@ namespace Window
 			return;
 		}
 
-		MESSAGE(_T("Got game window: %p"), hWnd);
+		MESSAGE("Got game window: %p", hWnd);
 
 		if (ForceBorderless) 
 		{
 			LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
 			if (!(style & WS_POPUP)) 
 			{
-				MESSAGE(_T("%p: Borderless fullscreen requested but window doesn't have WS_POPUP style, attempting to fix.."), hWnd);
+				MESSAGE("%p: Borderless fullscreen requested but window doesn't have WS_POPUP style, attempting to fix..", hWnd);
 
 				style &= ~WS_OVERLAPPEDWINDOW;
 				style |= WS_POPUP;

@@ -22,7 +22,7 @@ static bool FilterLoadLibraryW(const wstring& lfn)
     auto it = find(blockedModules.begin(), blockedModules.end(), lfn);
     if (it != blockedModules.end())
     {
-        MESSAGE(_T("Blocking load: %s"), StrToNative(lfn).c_str());
+        MESSAGE("Blocking load: %s", StrToNative(lfn).c_str());
         return false;
     }
 
@@ -151,10 +151,10 @@ extern "C"
         STD_STRING configPath = exePath + _T("\\DLLPlugins\\FE.ini");
 
         gLog.Open(logPath.c_str(), _T("FE.log"));
-        MESSAGE(_T("Initializing plugin"));
+        MESSAGE("Initializing plugin");
 
         if (conf.Load(StrToStr(configPath)) != 0) {
-            MESSAGE(_T("Couldn't load config file"));
+            MESSAGE("Couldn't load config file");
         }
 
         DXGI::HasSwapEffect = DXGI::ConfigTranslateSwapEffect(
@@ -199,14 +199,14 @@ extern "C"
             swapEffectStr = _T("default");
         }
 
-        MESSAGE(_T("DXGI: SwapEffect: %s, Format: %s, BufferCount: %u, Tearing: %d"),
+        MESSAGE("DXGI: SwapEffect: %s, Format: %s, BufferCount: %u, Tearing: %d",
             swapEffectStr.c_str(), formatStr.c_str(),
             DXGI::BufferCount, DXGI::EnableTearing);
 
         float framerateLimit = conf.Get("DXGI", "FramerateLimit", 0.0f);
         if (framerateLimit > 0.0f) {
             DXGI::fps_max = static_cast<long long>((1.0f / framerateLimit) * 1000000.0f);
-            MESSAGE(_T("Framerate limit: %.6g"), framerateLimit);
+            MESSAGE("Framerate limit: %.6g", framerateLimit);
         }
 
         D3D9::EnableFlip = conf.Get("D3D9", "EnableFlip", false);
@@ -246,10 +246,10 @@ extern "C"
 
         auto hookIf = h->GetHookInterface();
 
-        //MESSAGE(_T(":: %u"), (*hookIf).GetRefCount());
+        //MESSAGE(":: %u", (*hookIf).GetRefCount());
 
         if (numBlockedModules > 0) {
-            MESSAGE(_T("%u module(s) in blocklist"), numBlockedModules);
+            MESSAGE("%u module(s) in blocklist", numBlockedModules);
         }
 
         hookIf->Register(&(PVOID&)LoadLibraryA_O, (PVOID)LoadLibraryA_Hook);
@@ -262,11 +262,11 @@ extern "C"
                 StrToNative(conf.Get("Net", "AllowedPorts", "")),
                 _T(','), Inet::allowedPorts);
 
-            MESSAGE(_T("Blocking network connections (%u port(s) in allow list)"), numAllowedPorts);
+            MESSAGE("Blocking network connections (%u port(s) in allow list)", numAllowedPorts);
         }
 
         if (Inet::blockListen) {
-            MESSAGE(_T("Blocking network listen"));
+            MESSAGE("Blocking network listen");
         }
 
         if (Inet::blockDNSResolve) {
@@ -274,15 +274,15 @@ extern "C"
                 ToWString(conf.Get("Net", "AllowedHosts", "")),
                 L',', Inet::allowedHosts);
 
-            MESSAGE(_T("Blocking DNS resolve (%u host(s) in allow list)"), numAllowedHosts);
+            MESSAGE("Blocking DNS resolve (%u host(s) in allow list)", numAllowedHosts);
         }
 
         if (Inet::blockInternetOpen) {
-            MESSAGE(_T("Blocking InternetOpen"));
+            MESSAGE("Blocking InternetOpen");
         }
 
         if (!IHookLogged(hookIf, &gLog).InstallHooks()) {
-            MESSAGE(_T("Detours installed"));
+            MESSAGE("Detours installed");
         }
 
         InstallHooksIfLoaded();

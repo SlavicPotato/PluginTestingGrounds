@@ -30,14 +30,14 @@ static HRESULT STDMETHODCALLTYPE CreateShaderResourceView_Hook(
 
 	if (r != S_OK)
 	{
-		MESSAGE(_T("CreateShaderResourceView failed (0x%lX), trying with DXGI_FORMAT_UNKNOWN"), r);
+		MESSAGE("CreateShaderResourceView failed (0x%lX), trying with DXGI_FORMAT_UNKNOWN", r);
 
 		auto desc = const_cast<D3D11_SHADER_RESOURCE_VIEW_DESC*>(pDesc);
 		desc->Format = DXGI_FORMAT_UNKNOWN;
 
 		r = CreateShaderResourceView_O(pDevice, pResource, pDesc, ppSRView);
 		if (r != S_OK) {
-			MESSAGE(_T("CreateShaderResourceView failed (0x%lX)"));
+			MESSAGE("CreateShaderResourceView failed (0x%lX)");
 		}
 	}
 
@@ -57,7 +57,7 @@ static void SetMaxFrameLatency(IUnknown* pDevice)
 		pDXGIDevice->SetMaximumFrameLatency(static_cast<UINT>(MaxFrameLatency));
 	}
 	else {
-		MESSAGE(_T("QueryInterface(IDXGIDevice1) failed"));
+		MESSAGE("QueryInterface(IDXGIDevice1) failed");
 	}
 }
 
@@ -70,7 +70,7 @@ static HRESULT STDMETHODCALLTYPE SetMaximumFrameLatency_Hook(
 		MaxLatency = static_cast<UINT>(MaxFrameLatency);
 	}
 
-	MESSAGE(_T("%u -> %u"), MaxFrameLatency, MaxLatency);
+	MESSAGE("%u -> %u", MaxFrameLatency, MaxLatency);
 
 	return SetMaximumFrameLatency_O(pDXGIDevice, MaxLatency);
 }
@@ -106,7 +106,7 @@ static void InstallD3DDeviceVFTHooks(ID3D11Device* pDevice)
 		r2 = IHook::DetourVTable(pDXGIDevice, 0xC, SetMaximumFrameLatency_Hook, &SetMaximumFrameLatency_O);
 	}
 	else {
-		MESSAGE(_T("Couldn't get DXGIDevice1"));
+		MESSAGE("Couldn't get DXGIDevice1");
 	}
 
 
@@ -118,7 +118,7 @@ static void InstallD3DDeviceVFTHooks(ID3D11Device* pDevice)
 
 	//ctx->OMSetRenderTargets(0, nullptr, nullptr);
 
-	MESSAGE(_T("ID3D11Device vfuncs: (%d, %d, %d)"), r1, r2, false);
+	MESSAGE("ID3D11Device vfuncs: (%d, %d, %d)", r1, r2, false);
 }
 
 
@@ -137,13 +137,13 @@ HRESULT WINAPI D3D11CreateDevice_Hook(
 	HRESULT r = D3D11CreateDevice_O(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 	if (r == S_OK)
 	{		
-		MESSAGE(_T("D3D11CreateDevice succeeded"));
+		MESSAGE("D3D11CreateDevice succeeded");
 
 		InstallD3DDeviceVFTHooks(*ppDevice);
 		SetMaxFrameLatency(*ppDevice);
 	}
 	else {
-		MESSAGE(_T("D3D11CreateDevice failed: 0x%lX"), r);
+		MESSAGE("D3D11CreateDevice failed: 0x%lX", r);
 	}
 
 	return r;
@@ -173,7 +173,7 @@ static HRESULT WINAPI D3D11CreateDeviceAndSwapChain_Hook(
 	//(*ppImmediateContext)->OMSetRenderTargets
 
 	if (r == S_OK) {
-		MESSAGE(_T("D3D11CreateDeviceAndSwapChain succeeded"));
+		MESSAGE("D3D11CreateDeviceAndSwapChain succeeded");
 
 		InstallD3DDeviceVFTHooks(*ppDevice);
 		SetMaxFrameLatency(*ppDevice);
@@ -183,7 +183,7 @@ static HRESULT WINAPI D3D11CreateDeviceAndSwapChain_Hook(
 		}
 	}
 	else {
-		MESSAGE(_T("D3D11CreateDeviceAndSwapChain failed: 0x%lX"), r);
+		MESSAGE("D3D11CreateDeviceAndSwapChain failed: 0x%lX", r);
 	}
 
 	return r;

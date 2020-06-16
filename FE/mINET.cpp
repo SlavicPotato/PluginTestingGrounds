@@ -47,11 +47,11 @@ static bool FilterConnection(const sockaddr* name)
 
 	auto it = find(allowedPorts.begin(), allowedPorts.end(), sa->sin_port);
 	if (it == allowedPorts.end()) {
-		MESSAGE(_T("Blocking connection to: [%s]:%hu"), ip, sa->sin_port);
+		MESSAGE("Blocking connection to: [%s]:%hu", ip, sa->sin_port);
 		return false;
 	}
 	else {
-		MESSAGE(_T("Connect to: [%s]:%hu"), ip, sa->sin_port);
+		MESSAGE("Connect to: [%s]:%hu", ip, sa->sin_port);
 	}
 
 	return true;
@@ -64,7 +64,7 @@ listen_Hook(
 	_In_ int backlog
 )
 {
-	MESSAGE(_T("Blocking listen on socket %p"), s);
+	MESSAGE("Blocking listen on socket %p", s);
 
 	WSASetLastError_O(WSAENETDOWN);
 	return SOCKET_ERROR;
@@ -118,7 +118,7 @@ InternetOpenA_Hook(
 	_In_ DWORD dwFlags
 )
 {
-	MESSAGE(_T("Blocked"));
+	MESSAGE("Blocked");
 	return NULL;
 	//return InternetOpenA_O(lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags);
 }
@@ -134,7 +134,7 @@ InternetOpenW_Hook(
 	_In_ DWORD dwFlags
 )
 {
-	MESSAGE(_T("Blocked"));
+	MESSAGE("Blocked");
 	return NULL;
 	//return InternetOpenW_O(lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags);
 }
@@ -147,11 +147,11 @@ FilterLookupService(const wstring& serviceName)
 	auto it = find(allowedHosts.begin(), allowedHosts.end(), serviceName);
 	if (it != allowedHosts.end())
 	{
-		MESSAGE(_T("Allowing DNS resolve: %s"), StrToNative(serviceName).c_str());
+		MESSAGE("Allowing DNS resolve: %s", StrToNative(serviceName).c_str());
 		return true;
 	}
 	else {
-		MESSAGE(_T("Blocking DNS resolve: %s"), StrToNative(serviceName).c_str());
+		MESSAGE("Blocking DNS resolve: %s", StrToNative(serviceName).c_str());
 		return false;
 	}
 }

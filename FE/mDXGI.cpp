@@ -156,11 +156,11 @@ static HRESULT STDMETHODCALLTYPE SetFullscreenState_Hook(
 
 		Fullscreen = static_cast<BOOL>(DisplayMode);
 
-		MESSAGE(_T("%d -> %d"), Fullscreen, DisplayMode);
+		MESSAGE("%d -> %d", Fullscreen, DisplayMode);
 		//SetFullscreenState_O(pSwapChain, Fullscreen, pTarget);
 	}
 	else {
-		MESSAGE(_T("%d"), Fullscreen);
+		MESSAGE("%d", Fullscreen);
 	}
 
 	//return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
@@ -304,7 +304,7 @@ static HRESULT STDMETHODCALLTYPE ResizeBuffers_Hook(
 {
 	OnResizeBuffers(BufferCount, NewFormat, SwapChainFlags);
 
-	MESSAGE(_T("%ux%u, BufferCount: %u, Format: %d, Flags: 0x%.8X"),
+	MESSAGE("%ux%u, BufferCount: %u, Format: %d, Flags: 0x%.8X",
 		Width, Height, BufferCount, NewFormat, SwapChainFlags);
 
 	return ResizeBuffers_O(ppSwapChain, BufferCount, Width, Height, NewFormat, SwapChainFlags);
@@ -322,7 +322,7 @@ static HRESULT STDMETHODCALLTYPE ResizeBuffers1_Hook(
 {
 	OnResizeBuffers(BufferCount, Format, SwapChainFlags);
 
-	MESSAGE(_T("%ux%u, BufferCount: %u, Format: %d, Flags: 0x%.8X"),
+	MESSAGE("%ux%u, BufferCount: %u, Format: %d, Flags: 0x%.8X",
 		Width, Height, BufferCount, Format, SwapChainFlags);
 
 	return ResizeBuffers1_O(pSwapChain, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask, ppPresentQueue);
@@ -343,7 +343,7 @@ static HRESULT STDMETHODCALLTYPE ResizeTarget_Hook(
 		desc->RefreshRate.Numerator = 0;
 	}
 
-	MESSAGE(_T("%ux%u (%u/%u), Format: %d"),
+	MESSAGE("%ux%u (%u/%u), Format: %d",
 		pNewTargetParameters->Width, pNewTargetParameters->Height,
 		pNewTargetParameters->RefreshRate.Denominator, pNewTargetParameters->RefreshRate.Numerator,
 		pNewTargetParameters->Format
@@ -373,7 +373,7 @@ InstallDXGISwapChainVTHooks(void* pSwapChain)
 		r6 = IHook::DetourVTable(pSwapChain, 0x27, ResizeBuffers1_Hook, &ResizeBuffers1_O);
 	}
 
-	MESSAGE(_T("IDXGISwapChain vfuncs: (%d, %d, %d, %d, %d, %d)"), r1, r2, r3, r4, r5, r6);
+	MESSAGE("IDXGISwapChain vfuncs: (%d, %d, %d, %d, %d, %d)", r1, r2, r3, r4, r5, r6);
 }
 
 static __forceinline
@@ -408,7 +408,7 @@ DXGI_SWAP_EFFECT GetSwapEffectManual()
 	}
 
 	if (nse != se) {
-		MESSAGE(_T("swap effect %s not supported, using %s"),
+		MESSAGE("swap effect %s not supported, using %s",
 			 se, nse);
 		se = nse;
 	}
@@ -471,7 +471,7 @@ void OnPreCreateSwapChain1(DXGI_SWAP_CHAIN_DESC1* pDesc)
 		explicit_rebind = ExplicitRebind;
 	}
 
-	MESSAGE(_T("%ux%u, SwapEffect: %d, Format: %d , Buffers: %u, Flags: 0x%.8X"),
+	MESSAGE("%ux%u, SwapEffect: %d, Format: %d , Buffers: %u, Flags: 0x%.8X",
 		
 		pDesc->Width, pDesc->Height,
 		pDesc->SwapEffect,
@@ -520,25 +520,25 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 	OnPreCreateSwapChain1(&pd);
 
 	if (pFullscreenDesc != nullptr) {
-		MESSAGE(_T("Windowed: %d (%u/%u)"),
+		MESSAGE("Windowed: %d (%u/%u)",
 			fsdesc_tmp.Windowed,
 			fsdesc_tmp.RefreshRate.Denominator,
 			fsdesc_tmp.RefreshRate.Numerator);
 	}
 	else {
-		MESSAGE(_T("Windowed: 1"));
+		MESSAGE("Windowed: 1");
 	}
 
 	HRESULT r = CreateSwapChainForHwnd_O(pFactory, pDevice, hWnd, &pd, &fsdesc_tmp, pRestrictToOutput, ppSwapChain);
 
 	if (r == S_OK) {
-		MESSAGE(_T("CreateSwapChainForHwnd succeeded"));
+		MESSAGE("CreateSwapChainForHwnd succeeded");
 
 		InstallDXGISwapChainVTHooks(*ppSwapChain);
 		Window::OnSwapChainCreate(hWnd);
 	}
 	else {
-		MESSAGE(_T("CreateSwapChainForHwnd failed (0x%lX)"), r);
+		MESSAGE("CreateSwapChainForHwnd failed (0x%lX)", r);
 	}
 
 	return r;
@@ -556,10 +556,10 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForCoreWindow_Hook(
 
 	HRESULT r = CreateSwapChainForCoreWindow_O(pFactory, pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
 	if (r == S_OK) {
-		MESSAGE(_T("CreateSwapChainForCoreWindow succeeded"));
+		MESSAGE("CreateSwapChainForCoreWindow succeeded");
 	}
 	else {
-		MESSAGE(_T("CreateSwapChainForCoreWindow failed: 0x%lX"), r);
+		MESSAGE("CreateSwapChainForCoreWindow failed: 0x%lX", r);
 	}
 
 	return r;
@@ -576,10 +576,10 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForComposition_Hook(
 
 	HRESULT r = CreateSwapChainForComposition_O(pFactory, pDevice, pDesc, pRestrictToOutput, ppSwapChain);
 	if (r == S_OK) {
-		MESSAGE(_T("CreateSwapChainForComposition succeeded"));
+		MESSAGE("CreateSwapChainForComposition succeeded");
 	}
 	else {
-		MESSAGE(_T("CreateSwapChainForComposition failed: 0x%lX"), r);
+		MESSAGE("CreateSwapChainForComposition failed: 0x%lX", r);
 	}
 
 	return r;
@@ -594,7 +594,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 	auto desc = *pDesc_;
 
 	if (DisplayMode > -1) {
-		MESSAGE(_T("Applying display mode: %d"), DisplayMode);
+		MESSAGE("Applying display mode: %d", DisplayMode);
 
 		desc.Windowed = !static_cast<BOOL>(DisplayMode);
 
@@ -651,7 +651,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 		
 	}
 
-	MESSAGE(_T("SwapEffect: %d, Format: %d , Buffers: %u, Flags: 0x%.8X, Windowed: %d"),		
+	MESSAGE("SwapEffect: %d, Format: %d , Buffers: %u, Flags: 0x%.8X, Windowed: %d",		
 		desc.SwapEffect,
 		desc.BufferDesc.Format,
 		desc.BufferCount,
@@ -659,7 +659,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 		desc.Windowed
 	);
 
-	MESSAGE(_T("%ux%u (%u/%u)"),
+	MESSAGE("%ux%u (%u/%u)",
 		desc.BufferDesc.Width, desc.BufferDesc.Height,
 		desc.BufferDesc.RefreshRate.Denominator,
 		desc.BufferDesc.RefreshRate.Numerator);
@@ -668,14 +668,14 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 	HRESULT r = CreateSwapChain_O(pFactory, pDevice, &desc, ppSwapChain);
 
 	if (r == S_OK) {
-		MESSAGE(_T("CreateSwapChain succeeded"));
+		MESSAGE("CreateSwapChain succeeded");
 
 		InstallDXGISwapChainVTHooks(*ppSwapChain);
 
 		Window::OnSwapChainCreate(desc.OutputWindow);
 	}
 	else {
-		MESSAGE(_T("CreateSwapChain failed: 0x%lX"), r);
+		MESSAGE("CreateSwapChain failed: 0x%lX", r);
 	}
 
 	return r;
@@ -685,7 +685,7 @@ static void
 OnCreateDXGIFactory(void* pFactory)
 {
 	if (dxgiInfo.RunOnce(reinterpret_cast<IUnknown*>(pFactory))) {
-		MESSAGE(_T("DXGI version: %u, capabilities: 0x%.8X"), dxgiInfo.version, dxgiInfo.caps);
+		MESSAGE("DXGI version: %u, capabilities: 0x%.8X", dxgiInfo.version, dxgiInfo.caps);
 	}
 
 	bool r1 = IHook::DetourVTable(pFactory, 0xA, CreateSwapChain_Hook, &CreateSwapChain_O);
@@ -697,7 +697,7 @@ OnCreateDXGIFactory(void* pFactory)
 		r4 = IHook::DetourVTable(pFactory, 0x18, CreateSwapChainForComposition_Hook, &CreateSwapChainForComposition_O);
 	}
 
-	MESSAGE(_T("IDXGIFactory vfuncs: (%d, %d, %d, %d)"), r1, r2, r3, r4);
+	MESSAGE("IDXGIFactory vfuncs: (%d, %d, %d, %d)", r1, r2, r3, r4);
 }
 
 static HRESULT WINAPI CreateDXGIFactory_Hook(REFIID riid, _COM_Outptr_ void** ppFactory)
@@ -705,12 +705,12 @@ static HRESULT WINAPI CreateDXGIFactory_Hook(REFIID riid, _COM_Outptr_ void** pp
 	HRESULT r = CreateDXGIFactory_O(riid, ppFactory);
 
 	if (r == S_OK) {
-		MESSAGE(_T("CreateDXGIFactory succeeded"));
+		MESSAGE("CreateDXGIFactory succeeded");
 
 		OnCreateDXGIFactory(*ppFactory);
 	}
 	else {
-		MESSAGE(_T("CreateDXGIFactory failed: 0x%lX"), r);
+		MESSAGE("CreateDXGIFactory failed: 0x%lX", r);
 	}
 
 	return r;
@@ -721,12 +721,12 @@ static HRESULT WINAPI CreateDXGIFactory1_Hook(REFIID riid, _COM_Outptr_ void** p
 	HRESULT r = CreateDXGIFactory1_O(riid, ppFactory);
 
 	if (r == S_OK) {
-		MESSAGE(_T("CreateDXGIFactory1 succeeded"));
+		MESSAGE("CreateDXGIFactory1 succeeded");
 
 		OnCreateDXGIFactory(*ppFactory);
 	}
 	else {
-		MESSAGE(_T("CreateDXGIFactory1 failed: 0x%lX"), r);
+		MESSAGE("CreateDXGIFactory1 failed: 0x%lX", r);
 	}
 
 	return r;
@@ -737,12 +737,12 @@ static HRESULT WINAPI CreateDXGIFactory2_Hook(UINT Flags, REFIID riid, _COM_Outp
 	HRESULT r = CreateDXGIFactory2_O(Flags, riid, ppFactory);
 
 	if (r == S_OK) {
-		MESSAGE(_T("CreateDXGIFactory2 succeeded"));
+		MESSAGE("CreateDXGIFactory2 succeeded");
 
 		OnCreateDXGIFactory(*ppFactory);
 	}
 	else {
-		MESSAGE(_T("CreateDXGIFactory2 failed: 0x%lX"), r);
+		MESSAGE("CreateDXGIFactory2 failed: 0x%lX", r);
 	}
 
 	return r;
