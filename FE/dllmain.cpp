@@ -176,6 +176,11 @@ extern "C"
             }
         }
 
+        D3D11::CreateShaderResourceViewRetryOnFail = conf.Exists("DXGI", "CreateShaderResourceViewRetryFormat");
+        if (D3D11::CreateShaderResourceViewRetryOnFail) {
+            D3D11::CreateShaderResourceViewRetryFormat = conf.Get("DXGI", "CreateShaderResourceViewRetryFormat", DXGI_FORMAT_UNKNOWN);
+        }
+
         DXGI::BufferCount = clamp<UINT>(conf.Get<UINT>("DXGI", "BufferCount", 0), 0U, 8U);
         DXGI::DisplayMode = clamp(conf.Get("DXGI", "DisplayMode", -1), -1, 1);
         DXGI::EnableTearing = conf.Get("DXGI", "EnableTearing", false);
@@ -213,6 +218,7 @@ extern "C"
             MESSAGE("Framerate limit: %.6g", framerateLimit);
         }
 
+        //D3D9::EnableEx = conf.Get("D3D9", "EnableEx", true);
         D3D9::EnableFlip = conf.Get("D3D9", "EnableFlip", false);
         D3D9::PresentIntervalImmediate = conf.Get("D3D9", "PresentIntervalImmediate", false);
         D3D9::BufferCount = clamp<int32_t>(conf.Get<int32_t>("D3D9", "BufferCount", -1), -1, D3DPRESENT_BACK_BUFFERS_MAX_EX);

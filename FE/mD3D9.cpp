@@ -59,8 +59,9 @@ static IDirect3D9* WINAPI Direct3DCreate9_Hook(UINT SDKVersion)
 
 namespace D3D9
 {
-    bool PresentIntervalImmediate = false;
+    //bool EnableEx = true;
     bool EnableFlip = false;
+    bool PresentIntervalImmediate = false;
     int32_t BufferCount = -1;
     extern int32_t MaxFrameLatency = -1;
 

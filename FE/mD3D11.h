@@ -11,5 +11,8 @@ namespace D3D11
 {
 	extern int32_t MaxFrameLatency;
 
+	extern bool CreateShaderResourceViewRetryOnFail;
+	extern DXGI_FORMAT CreateShaderResourceViewRetryFormat;
+
 	void InstallHooksIfLoaded();
 }

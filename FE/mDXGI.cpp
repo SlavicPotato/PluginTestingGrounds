@@ -257,10 +257,6 @@ static HRESULT STDMETHODCALLTYPE Present1_Rebind_Hook(
 		ctx->Release();
 	}
 
-	if (r != S_OK) {
-		MESSAGE("?? :lX", r);
-	}
-
 	return r;
 }
 
@@ -377,7 +373,7 @@ InstallDXGISwapChainVTHooks(void* pSwapChain)
 }
 
 static __forceinline
-DXGI_SWAP_EFFECT GetSwapEffectAuto()
+DXGI_SWAP_EFFECT GetSwapEffectWindowedAuto()
 {
 	if (dxgiInfo.caps & DXGI_CAP_FLIP_DISCARD) {
 		return DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -417,10 +413,15 @@ DXGI_SWAP_EFFECT GetSwapEffectManual()
 }
 
 static __forceinline
-DXGI_SWAP_EFFECT GetSwapEffect()
+DXGI_SWAP_EFFECT GetSwapEffect(bool isWindowed)
 {
 	if (DXGISwapEffectInt == -1) {
-		return GetSwapEffectAuto();
+		if (isWindowed) {
+			return GetSwapEffectWindowedAuto();
+		}
+		else {
+			return DXGI_SWAP_EFFECT_DISCARD;
+		}
 	}
 	else {
 		return GetSwapEffectManual();
@@ -428,10 +429,10 @@ DXGI_SWAP_EFFECT GetSwapEffect()
 }
 
 static __forceinline
-void OnPreCreateSwapChain1(DXGI_SWAP_CHAIN_DESC1* pDesc)
+void OnPreCreateSwapChain1(DXGI_SWAP_CHAIN_DESC1* pDesc, bool isWindowed)
 {
 	if (HasSwapEffect) {
-		pDesc->SwapEffect = GetSwapEffect();
+		pDesc->SwapEffect = GetSwapEffect(isWindowed);
 	}
 
 	if (BufferCount > 0) {
@@ -471,8 +472,7 @@ void OnPreCreateSwapChain1(DXGI_SWAP_CHAIN_DESC1* pDesc)
 		explicit_rebind = ExplicitRebind;
 	}
 
-	MESSAGE("%ux%u, SwapEffect: %d, Format: %d , Buffers: %u, Flags: 0x%.8X",
-		
+	MESSAGE("%ux%u, SwapEffect: %d, Format: %d , Buffers: %u, Flags: 0x%.8X",		
 		pDesc->Width, pDesc->Height,
 		pDesc->SwapEffect,
 		pDesc->Format,
@@ -480,7 +480,6 @@ void OnPreCreateSwapChain1(DXGI_SWAP_CHAIN_DESC1* pDesc)
 		pDesc->Flags
 	);
 }
-
 
 static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 	IDXGIFactory2* pFactory,
@@ -496,6 +495,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 	DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsdesc_tmp;
 	if (pFullscreenDesc != nullptr) {
 		fsdesc_tmp = *pFullscreenDesc;
+		pFullscreenDesc = &fsdesc_tmp;
 	}
 
 	if (DisplayMode > -1) {
@@ -505,6 +505,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 				fsdesc_tmp.RefreshRate.Denominator = 0U;
 				fsdesc_tmp.RefreshRate.Numerator = 0U;
 				fsdesc_tmp.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+				pFullscreenDesc = &fsdesc_tmp;
 			}
 		}
 		else {
@@ -517,7 +518,9 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 		}
 	}
 
-	OnPreCreateSwapChain1(&pd);
+	bool isWindowed = pFullscreenDesc && pFullscreenDesc->Windowed;
+
+	OnPreCreateSwapChain1(&pd, isWindowed);
 
 	if (pFullscreenDesc != nullptr) {
 		MESSAGE("Windowed: %d (%u/%u)",
@@ -529,9 +532,9 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 		MESSAGE("Windowed: 1");
 	}
 
-	HRESULT r = CreateSwapChainForHwnd_O(pFactory, pDevice, hWnd, &pd, &fsdesc_tmp, pRestrictToOutput, ppSwapChain);
+	HRESULT r = CreateSwapChainForHwnd_O(pFactory, pDevice, hWnd, &pd, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
 
-	if (r == S_OK) {
+	if (SUCCEEDED(r)) {
 		MESSAGE("CreateSwapChainForHwnd succeeded");
 
 		InstallDXGISwapChainVTHooks(*ppSwapChain);
@@ -552,10 +555,12 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForCoreWindow_Hook(
 	_In_opt_  IDXGIOutput* pRestrictToOutput,
 	_COM_Outptr_  IDXGISwapChain1** ppSwapChain)
 {
-	OnPreCreateSwapChain1(const_cast<DXGI_SWAP_CHAIN_DESC1*>(pDesc));
+	auto pd = *pDesc;
 
-	HRESULT r = CreateSwapChainForCoreWindow_O(pFactory, pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
-	if (r == S_OK) {
+	OnPreCreateSwapChain1(&pd, true);
+
+	HRESULT r = CreateSwapChainForCoreWindow_O(pFactory, pDevice, pWindow, &pd, pRestrictToOutput, ppSwapChain);
+	if (SUCCEEDED(r)) {
 		MESSAGE("CreateSwapChainForCoreWindow succeeded");
 	}
 	else {
@@ -572,10 +577,12 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForComposition_Hook(
 	_In_opt_  IDXGIOutput* pRestrictToOutput,
 	_COM_Outptr_  IDXGISwapChain1** ppSwapChain)
 {
-	OnPreCreateSwapChain1(const_cast<DXGI_SWAP_CHAIN_DESC1*>(pDesc));
+	auto pd = *pDesc;
 
-	HRESULT r = CreateSwapChainForComposition_O(pFactory, pDevice, pDesc, pRestrictToOutput, ppSwapChain);
-	if (r == S_OK) {
+	OnPreCreateSwapChain1(&pd, true);
+
+	HRESULT r = CreateSwapChainForComposition_O(pFactory, pDevice, &pd, pRestrictToOutput, ppSwapChain);
+	if (SUCCEEDED(r)) {
 		MESSAGE("CreateSwapChainForComposition succeeded");
 	}
 	else {
@@ -605,7 +612,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 	}
 
 	if (HasSwapEffect) {
-		desc.SwapEffect = GetSwapEffect();
+		desc.SwapEffect = GetSwapEffect(desc.Windowed);
 	}
 
 	if (BufferCount > 0) {
@@ -667,7 +674,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 
 	HRESULT r = CreateSwapChain_O(pFactory, pDevice, &desc, ppSwapChain);
 
-	if (r == S_OK) {
+	if (SUCCEEDED(r)) {
 		MESSAGE("CreateSwapChain succeeded");
 
 		InstallDXGISwapChainVTHooks(*ppSwapChain);
@@ -704,7 +711,7 @@ static HRESULT WINAPI CreateDXGIFactory_Hook(REFIID riid, _COM_Outptr_ void** pp
 {
 	HRESULT r = CreateDXGIFactory_O(riid, ppFactory);
 
-	if (r == S_OK) {
+	if (SUCCEEDED(r)) {
 		MESSAGE("CreateDXGIFactory succeeded");
 
 		OnCreateDXGIFactory(*ppFactory);
@@ -720,7 +727,7 @@ static HRESULT WINAPI CreateDXGIFactory1_Hook(REFIID riid, _COM_Outptr_ void** p
 {
 	HRESULT r = CreateDXGIFactory1_O(riid, ppFactory);
 
-	if (r == S_OK) {
+	if (SUCCEEDED(r)) {
 		MESSAGE("CreateDXGIFactory1 succeeded");
 
 		OnCreateDXGIFactory(*ppFactory);
@@ -736,7 +743,7 @@ static HRESULT WINAPI CreateDXGIFactory2_Hook(UINT Flags, REFIID riid, _COM_Outp
 {
 	HRESULT r = CreateDXGIFactory2_O(Flags, riid, ppFactory);
 
-	if (r == S_OK) {
+	if (SUCCEEDED(r)) {
 		MESSAGE("CreateDXGIFactory2 succeeded");
 
 		OnCreateDXGIFactory(*ppFactory);

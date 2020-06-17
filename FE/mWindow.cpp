@@ -96,7 +96,7 @@ SetWindowPos_Hook(
     return SetWindowPos_O(hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 }
 
-static HWND WINAPI CreateWindowExA_Hook(
+/*static HWND WINAPI CreateWindowExA_Hook(
     _In_ DWORD dwExStyle,
     _In_opt_ LPCSTR lpClassName,
     _In_opt_ LPCSTR lpWindowName,
@@ -111,7 +111,7 @@ static HWND WINAPI CreateWindowExA_Hook(
     _In_opt_ LPVOID lpParam)
 {
     return CreateWindowExA_O(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-}
+}*/
 
 
 static volatile LONG isWindowHooked = 0;
@@ -130,9 +130,9 @@ static void HookWindow(HMODULE hModule)
         RegisterDetour(hookIf, hModule, SetWindowPos_O, SetWindowPos_Hook, "SetWindowPos");
     }
 
-    if (ForceBorderless) {
+    /*if (ForceBorderless) {
         RegisterDetour(hookIf, hModule, CreateWindowExA_O, CreateWindowExA_Hook, "CreateWindowExA");
-    }
+    }*/
 
     IHookLogged(hookIf, &gLog).InstallHooks();
 }
@@ -175,6 +175,14 @@ static void HideCursor()
     SetCursor(NULL);
 }
 
+static void DoCursorFix(HWND hWnd)
+{
+    if (GetFocus() == hWnd && GetActiveWindow() == hWnd) {
+        SetCursorLock(hWnd);
+        HideCursor();
+    }
+}
+
 static LRESULT CALLBACK WndProc_Hook(
     HWND hWnd,
     UINT uMsg,
@@ -188,10 +196,7 @@ static LRESULT CALLBACK WndProc_Hook(
     case WM_CAPTURECHANGED:
     case WM_WINDOWPOSCHANGED:
     case WM_SIZING:
-        if (::GetFocus() == hWnd && ::GetActiveWindow() == hWnd) {
-            SetCursorLock(hWnd);
-            HideCursor();
-        }
+        DoCursorFix(hWnd);
         break;
     case WM_ACTIVATE:
     {
@@ -199,10 +204,7 @@ static LRESULT CALLBACK WndProc_Hook(
         WORD fActive = LOWORD(wParam);
 
         if (fActive == WA_ACTIVE && !fMinimized) {
-            if (::GetFocus() == hWnd && ::GetActiveWindow() == hWnd) {
-                SetCursorLock(hWnd);
-                HideCursor();
-            }
+            DoCursorFix(hWnd);
         }
         else if (fActive == WA_INACTIVE) {
             ClipCursor(NULL);
@@ -222,12 +224,16 @@ namespace Window
 {
     void OnSwapChainCreate(HWND hWnd)
     {
-        if (gameWindow != nullptr || hWnd == nullptr) {
+        if (hWnd == nullptr) {
             return;
         }
 
-        MESSAGE("Got game window: %p", hWnd);
-        gameWindow = hWnd;
+        static volatile LONG gotHWND = 0;
+        if (InterlockedCompareExchangeAcquire(&gotHWND, 1, 0)) {
+            return;
+        }
+
+        MESSAGE("Got game window (probably): %p", hWnd);
 
         if (ForceBorderless)
         {
@@ -251,13 +257,14 @@ namespace Window
             SetCursorLock(hWnd);
             HideCursor();
             pfnWndProc = reinterpret_cast<WNDPROC>(
-                ::SetWindowLongPtr(
+                SetWindowLongPtr(
                     hWnd,
                     GWLP_WNDPROC,
                     reinterpret_cast<LONG_PTR>(WndProc_Hook))
                 );
         }
 
+        gameWindow = hWnd;
     }
 
     void InstallHooksIfLoaded()
