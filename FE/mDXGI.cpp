@@ -619,10 +619,6 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 		desc.BufferCount = BufferCount;
 	}
 
-	if (HasFormat) {
-		desc.BufferDesc.Format = DXGIFormat;
-	}
-
 	//desc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	bool is_flip = desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD ||
 		desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
