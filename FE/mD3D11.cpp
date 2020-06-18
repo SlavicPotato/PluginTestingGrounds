@@ -31,7 +31,7 @@ static HRESULT STDMETHODCALLTYPE CreateShaderResourceView_Hook(
 {
     HRESULT r = CreateShaderResourceView_O(pDevice, pResource, pDesc, ppSRView);
 
-    if (!SUCCEEDED(r))
+    if (r != S_OK)
     {
         auto desc = *pDesc;
 
@@ -44,7 +44,7 @@ static HRESULT STDMETHODCALLTYPE CreateShaderResourceView_Hook(
             MESSAGE("Retrying with format: %d", desc.Format);
 
             r = CreateShaderResourceView_O(pDevice, pResource, &desc, ppSRView);
-            if (!SUCCEEDED(r)) {
+            if (r != S_OK) {
                 MESSAGE("CreateShaderResourceView failed (0x%lX)");
             }
         }
@@ -143,7 +143,7 @@ HRESULT WINAPI D3D11CreateDevice_Hook(
     _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
     HRESULT r = D3D11CreateDevice_O(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
-    if (SUCCEEDED(r))
+    if (r == S_OK)
     {
         MESSAGE("D3D11CreateDevice succeeded");
 
@@ -180,7 +180,7 @@ static HRESULT WINAPI D3D11CreateDeviceAndSwapChain_Hook(
 
     //(*ppImmediateContext)->OMSetRenderTargets
 
-    if (SUCCEEDED(r)) {
+    if (r == S_OK) {
         MESSAGE("D3D11CreateDeviceAndSwapChain succeeded");
 
         InstallD3DDeviceVFTHooks(*ppDevice);

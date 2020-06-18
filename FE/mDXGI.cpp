@@ -534,7 +534,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 
 	HRESULT r = CreateSwapChainForHwnd_O(pFactory, pDevice, hWnd, &pd, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
 
-	if (SUCCEEDED(r)) {
+	if (r == S_OK) {
 		MESSAGE("CreateSwapChainForHwnd succeeded");
 
 		InstallDXGISwapChainVTHooks(*ppSwapChain);
@@ -560,7 +560,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForCoreWindow_Hook(
 	OnPreCreateSwapChain1(&pd, true);
 
 	HRESULT r = CreateSwapChainForCoreWindow_O(pFactory, pDevice, pWindow, &pd, pRestrictToOutput, ppSwapChain);
-	if (SUCCEEDED(r)) {
+	if (r == S_OK) {
 		MESSAGE("CreateSwapChainForCoreWindow succeeded");
 	}
 	else {
@@ -582,7 +582,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForComposition_Hook(
 	OnPreCreateSwapChain1(&pd, true);
 
 	HRESULT r = CreateSwapChainForComposition_O(pFactory, pDevice, &pd, pRestrictToOutput, ppSwapChain);
-	if (SUCCEEDED(r)) {
+	if (r == S_OK) {
 		MESSAGE("CreateSwapChainForComposition succeeded");
 	}
 	else {
@@ -670,7 +670,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 
 	HRESULT r = CreateSwapChain_O(pFactory, pDevice, &desc, ppSwapChain);
 
-	if (SUCCEEDED(r)) {
+	if (r == S_OK) {
 		MESSAGE("CreateSwapChain succeeded");
 
 		InstallDXGISwapChainVTHooks(*ppSwapChain);
