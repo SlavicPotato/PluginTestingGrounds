@@ -110,7 +110,7 @@ private:
 namespace DXGI
 {
 	extern UINT BufferCount;
-	extern DXGI_FORMAT DXGIFormat;
+	extern DXGI_FORMAT Format;
 	extern int DXGISwapEffectInt;
 	extern int DisplayMode;
 	extern bool EnableTearing;

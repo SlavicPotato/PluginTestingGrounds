@@ -15,8 +15,6 @@ namespace D3D11
     DXGI_FORMAT CreateShaderResourceViewRetryFormat;
 }
 
-using namespace D3D11;
-
 static PFN_D3D11_CREATE_DEVICE D3D11CreateDevice_O;
 static PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN D3D11CreateDeviceAndSwapChain_O;
 
@@ -31,15 +29,18 @@ static HRESULT STDMETHODCALLTYPE CreateShaderResourceView_Hook(
 {
     HRESULT r = CreateShaderResourceView_O(pDevice, pResource, pDesc, ppSRView);
 
-    if (r != S_OK)
+    if (r == S_FALSE) {
+        MESSAGE("CreateShaderResourceView non-standard completion");
+    }
+    else if (r != S_OK)
     {
         auto desc = *pDesc;
 
         MESSAGE("CreateShaderResourceView failed (0x%lX) fmt: %d", r, desc.Format);
 
-        if (CreateShaderResourceViewRetryOnFail)
+        if (D3D11::CreateShaderResourceViewRetryOnFail)
         {
-            desc.Format = CreateShaderResourceViewRetryFormat;
+            desc.Format = D3D11::CreateShaderResourceViewRetryFormat;
 
             MESSAGE("Retrying with format: %d", desc.Format);
 
@@ -55,14 +56,14 @@ static HRESULT STDMETHODCALLTYPE CreateShaderResourceView_Hook(
 
 static void SetMaxFrameLatency(IUnknown* pDevice)
 {
-    if (MaxFrameLatency < 0) {
+    if (D3D11::MaxFrameLatency < 0) {
         return;
     }
 
     IDXGIDevice1* pDXGIDevice;
     auto hr = pDevice->QueryInterface(__uuidof(IDXGIDevice1), (void**)&pDXGIDevice);
     if (SUCCEEDED(hr)) {
-        pDXGIDevice->SetMaximumFrameLatency(static_cast<UINT>(MaxFrameLatency));
+        pDXGIDevice->SetMaximumFrameLatency(static_cast<UINT>(D3D11::MaxFrameLatency));
     }
     else {
         MESSAGE("QueryInterface(IDXGIDevice1) failed");
@@ -74,11 +75,11 @@ static HRESULT STDMETHODCALLTYPE SetMaximumFrameLatency_Hook(
     IDXGIDevice1* pDXGIDevice,
     UINT MaxLatency)
 {
-    if (MaxFrameLatency > -1) {
-        MaxLatency = static_cast<UINT>(MaxFrameLatency);
+    if (D3D11::MaxFrameLatency > -1) {
+        MaxLatency = static_cast<UINT>(D3D11::MaxFrameLatency);
     }
 
-    MESSAGE("%u -> %u", MaxFrameLatency, MaxLatency);
+    MESSAGE("%u -> %u", D3D11::MaxFrameLatency, MaxLatency);
 
     return SetMaximumFrameLatency_O(pDXGIDevice, MaxLatency);
 }

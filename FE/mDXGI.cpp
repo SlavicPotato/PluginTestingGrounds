@@ -24,7 +24,7 @@ static DXGIInfo dxgiInfo;
 namespace DXGI
 {
 	UINT BufferCount;
-	DXGI_FORMAT DXGIFormat;
+	DXGI_FORMAT Format;
 	int DXGISwapEffectInt;
 	int DisplayMode;
 	bool EnableTearing;
@@ -36,8 +36,6 @@ namespace DXGI
 
 	long long fps_max = 0;
 }
-
-using namespace DXGI;
 
 static long long tts;
 //UINT presentFlags = 0;
@@ -152,11 +150,11 @@ static HRESULT STDMETHODCALLTYPE SetFullscreenState_Hook(
 	BOOL Fullscreen,
 	_In_opt_  IDXGIOutput* pTarget)
 {
-	if (DisplayMode > -1) {
+	if (DXGI::DisplayMode > -1) {
 
-		Fullscreen = static_cast<BOOL>(DisplayMode);
+		Fullscreen = static_cast<BOOL>(DXGI::DisplayMode);
 
-		MESSAGE("%d -> %d", Fullscreen, DisplayMode);
+		MESSAGE("%d -> %d", Fullscreen, DXGI::DisplayMode);
 		//SetFullscreenState_O(pSwapChain, Fullscreen, pTarget);
 	}
 	else {
@@ -171,8 +169,8 @@ static HRESULT STDMETHODCALLTYPE SetFullscreenState_Hook(
 static __forceinline
 void OnPresent(UINT& SyncInterval, UINT& PresentFlags)
 {
-	if (fps_max > 0) {
-		while (PerfCounter::deltal(tts, PerfCounter::Query()) < fps_max) {
+	if (DXGI::fps_max > 0) {
+		while (PerfCounter::deltal(tts, PerfCounter::Query()) < DXGI::fps_max) {
 			Sleep(0);
 		}
 		tts = PerfCounter::Query();
@@ -281,12 +279,12 @@ void OnResizeBuffers(
 		SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 	}
 
-	if (BufferCount > 0) {
-		BufferCount = BufferCount;
+	if (DXGI::BufferCount > 0) {
+		BufferCount = DXGI::BufferCount;
 	}
 
-	if (HasFormat) {
-		Format = DXGIFormat;
+	if (DXGI::HasFormat) {
+		Format = DXGI::Format;
 	}
 }
 
@@ -330,11 +328,11 @@ static HRESULT STDMETHODCALLTYPE ResizeTarget_Hook(
 {
 	auto desc = const_cast<DXGI_MODE_DESC*>(pNewTargetParameters);
 
-	if (HasFormat) {
-		desc->Format = DXGIFormat;
+	if (DXGI::HasFormat) {
+		desc->Format = DXGI::Format;
 	}
 
-	if (!DisplayMode) {
+	if (!DXGI::DisplayMode) {
 		desc->RefreshRate.Denominator = 0;
 		desc->RefreshRate.Numerator = 0;
 	}
@@ -357,7 +355,7 @@ InstallDXGISwapChainVTHooks(void* pSwapChain)
 
 	bool r4 = false, r5 = false, r6 = false;
 
-	if (fps_max > 0 || tearing_on || explicit_rebind) {
+	if (DXGI::fps_max > 0 || tearing_on || explicit_rebind) {
 		tts = PerfCounter::Query();
 		r4 = IHook::DetourVTable(pSwapChain, 0x8, explicit_rebind ? Present_Rebind_Hook : Present_Hook, &Present_O);
 		if (dxgiInfo.version >= DXGI_VERSION_2) {
@@ -388,7 +386,7 @@ DXGI_SWAP_EFFECT GetSwapEffectWindowedAuto()
 static __forceinline
 DXGI_SWAP_EFFECT GetSwapEffectManual()
 {
-	DXGI_SWAP_EFFECT se = cfgSwapEffectIntToSwapEffect[DXGISwapEffectInt];
+	DXGI_SWAP_EFFECT se = cfgSwapEffectIntToSwapEffect[DXGI::DXGISwapEffectInt];
 	DXGI_SWAP_EFFECT nse = se;
 
 	if (nse == DXGI_SWAP_EFFECT_FLIP_DISCARD &&
@@ -415,7 +413,7 @@ DXGI_SWAP_EFFECT GetSwapEffectManual()
 static __forceinline
 DXGI_SWAP_EFFECT GetSwapEffect(bool isWindowed)
 {
-	if (DXGISwapEffectInt == -1) {
+	if (DXGI::DXGISwapEffectInt == -1) {
 		if (isWindowed) {
 			return GetSwapEffectWindowedAuto();
 		}
@@ -431,28 +429,28 @@ DXGI_SWAP_EFFECT GetSwapEffect(bool isWindowed)
 static __forceinline
 void OnPreCreateSwapChain1(DXGI_SWAP_CHAIN_DESC1* pDesc, bool isWindowed)
 {
-	if (HasSwapEffect) {
+	if (DXGI::HasSwapEffect) {
 		pDesc->SwapEffect = GetSwapEffect(isWindowed);
 	}
 
-	if (BufferCount > 0) {
-		pDesc->BufferCount = BufferCount;
+	if (DXGI::BufferCount > 0) {
+		pDesc->BufferCount = DXGI::BufferCount;
 	}
 
 	bool is_flip = pDesc->SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD ||
 		pDesc->SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
-	if (HasFormat) {
-		if (FormatAuto) {
+	if (DXGI::HasFormat) {
+		if (DXGI::FormatAuto) {
 			if (is_flip) {
-				DXGIFormat = pDesc->Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				DXGI::Format = pDesc->Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			}
 			else {
-				HasFormat = false;
+				DXGI::HasFormat = false;
 			}
 		}
 		else {
-			pDesc->Format = DXGIFormat;
+			pDesc->Format = DXGI::Format;
 		}
 	}
 
@@ -464,12 +462,12 @@ void OnPreCreateSwapChain1(DXGI_SWAP_CHAIN_DESC1* pDesc, bool isWindowed)
 			pDesc->BufferCount = 2;
 		}
 
-		if (EnableTearing && (dxgiInfo.caps & DXGI_CAP_TEARING)) {
+		if (DXGI::EnableTearing && (dxgiInfo.caps & DXGI_CAP_TEARING)) {
 			pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 			tearing_on = true;
 		}
 
-		explicit_rebind = ExplicitRebind;
+		explicit_rebind = DXGI::ExplicitRebind;
 	}
 
 	MESSAGE("%ux%u, SwapEffect: %d, Format: %d , Buffers: %u, Flags: 0x%.8X",		
@@ -498,9 +496,9 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 		pFullscreenDesc = &fsdesc_tmp;
 	}
 
-	if (DisplayMode > -1) {
+	if (DXGI::DisplayMode > -1) {
 		if (pFullscreenDesc == nullptr) {
-			if (DisplayMode == 1) {
+			if (DXGI::DisplayMode == 1) {
 				fsdesc_tmp.Windowed = FALSE;
 				fsdesc_tmp.RefreshRate.Denominator = 0U;
 				fsdesc_tmp.RefreshRate.Numerator = 0U;
@@ -509,7 +507,7 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd_Hook(
 			}
 		}
 		else {
-			fsdesc_tmp.Windowed = !static_cast<BOOL>(DisplayMode);
+			fsdesc_tmp.Windowed = !static_cast<BOOL>(DXGI::DisplayMode);
 
 			if (fsdesc_tmp.Windowed) {
 				fsdesc_tmp.RefreshRate.Denominator = 0U;
@@ -600,10 +598,10 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 {
 	auto desc = *pDesc_;
 
-	if (DisplayMode > -1) {
-		MESSAGE("Applying display mode: %d", DisplayMode);
+	if (DXGI::DisplayMode > -1) {
+		MESSAGE("Applying display mode: %d", DXGI::DisplayMode);
 
-		desc.Windowed = !static_cast<BOOL>(DisplayMode);
+		desc.Windowed = !static_cast<BOOL>(DXGI::DisplayMode);
 
 		if (desc.Windowed) {
 			desc.BufferDesc.RefreshRate.Denominator = 0;
@@ -611,29 +609,29 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 		}
 	}
 
-	if (HasSwapEffect) {
+	if (DXGI::HasSwapEffect) {
 		desc.SwapEffect = GetSwapEffect(desc.Windowed);
 	}
 
-	if (BufferCount > 0) {
-		desc.BufferCount = BufferCount;
+	if (DXGI::BufferCount > 0) {
+		desc.BufferCount = DXGI::BufferCount;
 	}
 
 	//desc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	bool is_flip = desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD ||
 		desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
-	if (HasFormat) {
-		if (FormatAuto) {
+	if (DXGI::HasFormat) {
+		if (DXGI::FormatAuto) {
 			if (is_flip) {
-				DXGIFormat = desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				DXGI::Format = desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			}
 			else {
-				HasFormat = false;
+				DXGI::HasFormat = false;
 			}
 		}
 		else {
-			desc.BufferDesc.Format = DXGIFormat;
+			desc.BufferDesc.Format = DXGI::Format;
 		}
 	}
 
@@ -645,12 +643,12 @@ static HRESULT STDMETHODCALLTYPE CreateSwapChain_Hook(
 			desc.BufferCount = 2;
 		}
 
-		if (EnableTearing && (dxgiInfo.caps & DXGI_CAP_TEARING)) {
+		if (DXGI::EnableTearing && (dxgiInfo.caps & DXGI_CAP_TEARING)) {
 			desc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 			tearing_on = true;
 		}
 
-		explicit_rebind = ExplicitRebind;
+		explicit_rebind = DXGI::ExplicitRebind;
 		
 	}
 

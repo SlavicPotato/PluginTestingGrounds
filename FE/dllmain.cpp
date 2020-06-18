@@ -172,7 +172,7 @@ extern "C"
                 DXGI::FormatAuto = true;
             }
             else {
-                DXGI::DXGIFormat = conf.Get("DXGI", "Format", DXGI_FORMAT_R8G8B8A8_UNORM);
+                DXGI::Format = conf.Get("DXGI", "Format", DXGI_FORMAT_R8G8B8A8_UNORM);
             }
         }
 
@@ -193,7 +193,7 @@ extern "C"
                 formatStr = _T("auto");
             }
             else {
-                formatStr = STD_TOSTR(static_cast<int>(DXGI::DXGIFormat));
+                formatStr = STD_TOSTR(static_cast<int>(DXGI::Format));
             }
         }
         else {
